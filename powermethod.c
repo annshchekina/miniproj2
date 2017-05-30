@@ -5,14 +5,14 @@
 
 #define time_test 1
 
-void do_power_method(int N, // add restrict
+void do_power_method(const int N, // add restrict
 		     const double* guess,
 		     const double* matrix,
 		     double* resultEigVal,
 		     double* resultVec,
-		     int noOfIterations) 
+		     const int noOfIterations) 
 {
-  if(!time_test)
+  if(!time_test)			 
   	printf("This is the do_power_method() function, N = %d, noOfIterations = %d\n", N, noOfIterations);
   double v[N];
   int i, k;
@@ -23,13 +23,22 @@ void do_power_method(int N, // add restrict
   {
     double y[N];
     do_mat_vec_mul(N, matrix, v, y);
-    double dotprod = get_dot_prod(N, v, y); // why not moving it inside printing loop?
-    double vv_prod = get_dot_prod(N, v, v); 
-    eigValApprox = dotprod / vv_prod;
-    if(!time_test && k % 2000 == 0)
-      printf("k = %6d  eigValApprox = %17.10f\n", k, eigValApprox);
-    for(i = 0; i < N; i++) // simd, denominator once
-      v[i] = y[i] / sqrt(vv_prod);
+    const double vv_prod = get_dot_prod(N, v, v); 
+	const double vv_prod_sqrt = sqrt(vv_prod);
+    if(k % 2000 == 0)
+	{
+		const double dotprod = get_dot_prod(N, v, y);
+		eigValApprox = dotprod / vv_prod;
+		if(!time_test)
+			printf("k = %6d  eigValApprox = %17.10f\n", k, eigValApprox);
+	}
+	if(k == noOfIterations - 1)
+	{
+		const double dotprod = get_dot_prod(N, v, y);
+		eigValApprox = dotprod / vv_prod;
+	}
+    for(i = 0; i < N; i++) // simd
+      v[i] = y[i] / vv_prod_sqrt;
   }
   double norm_of_v = sqrt(get_dot_prod(N, v, v));
   for(i = 0; i < N; i++)

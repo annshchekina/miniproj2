@@ -1,6 +1,6 @@
-void do_power_method(int N,
+void do_power_method(const int N,
 		     const double* guess,
 		     const double* matrix,
 		     double* resultEigVal,
 		     double* resultVec,
-		     int noOfIterations);
+		     const int noOfIterations);

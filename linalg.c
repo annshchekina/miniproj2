@@ -1,17 +1,17 @@
 #include <math.h>
 #include "linalg.h"
 
-void do_mat_vec_mul(int n, const double* matrix, const double* x, double* y) {
+void do_mat_vec_mul(const int n, const double * matrix, const double * x, double* y) {
   int i, j;
   for(i = 0; i < n; i++) {
     double sum = 0;
     for(j = 0; j < n; j++)
-      sum += matrix[j*n+i]*x[j];
+      sum += matrix[j*n+i] * x[j];
     y[i] = sum;
   }
 }
 
-double get_dot_prod(int N, const double* a, const double* b) { // simd dot product
+double get_dot_prod(const int N, const double * a, const double * b) { // simd dot product
   double sum = 0;
   int i;
   for(i = 0; i < N; i++)
@@ -22,7 +22,7 @@ double get_dot_prod(int N, const double* a, const double* b) { // simd dot produ
 /* Note: since we assume the matrix is symmetric, the one-norm and the
    inf-norm are the same, so it does not matter if we take row sums or
    column sums. */
-double get_one_norm(int N, const double* A) {
+double get_one_norm(const int N, const double * A) {
   double maxColSum = 0;
   int i, k;
   for(i = 0; i < N; i++) {

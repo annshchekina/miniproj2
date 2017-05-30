@@ -1,1 +1,1 @@
-void plot_function(double* vec, int N, const char* name);
+void plot_function(const double* vec, const int N, const char* name);
