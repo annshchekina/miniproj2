@@ -1,4 +1,5 @@
 #include <math.h>
+#include <pmmintrin.h>
 #include "linalg.h"
 
 void do_mat_vec_mul(const int n, const double * __restrict matrix, const double * __restrict x, double * __restrict y) { 
@@ -14,8 +15,15 @@ void do_mat_vec_mul(const int n, const double * __restrict matrix, const double 
 double get_dot_prod(const int N, const double * a, const double * b) { // simd dot product
   double sum = 0;
   int i;
-  for(i = 0; i < N; i++)
-    sum += a[i] * b[i];
+  const __m128d vec_zero = _mm_setzero_pd();
+  for(i = 0; i < N; i += 2)
+  {
+  	const __m128d a_vec = _mm_load_pd(a + i);
+  	const __m128d b_vec = _mm_load_pd(b + i);
+  	const __m128d mult = _mm_mul_pd(a_vec, b_vec);
+  	const __m128d reduc = _mm_hadd_pd(mult, vec_zero);
+  	sum += _mm_cvtsd_f64(reduc);
+  }
   return sum;
 }
 

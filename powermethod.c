@@ -2,6 +2,7 @@
 #include "linalg.h"
 #include <stdio.h>
 #include <math.h>
+#include <pmmintrin.h>
 
 #define time_test 0
 
@@ -24,7 +25,6 @@ void do_power_method(const int N, // add restrict
     double y[N];
     do_mat_vec_mul(N, matrix, v, y);
     const double vv_prod = get_dot_prod(N, v, v); 
-	const double vv_prod_sqrt = sqrt(vv_prod);
     if(k % 2000 == 0)
 	{
 		const double dotprod = get_dot_prod(N, v, y);
@@ -37,8 +37,13 @@ void do_power_method(const int N, // add restrict
 		const double dotprod = get_dot_prod(N, v, y);
 		eigValApprox = dotprod / vv_prod;
 	}
-    for(i = 0; i < N; i++) // simd
-      v[i] = y[i] / vv_prod_sqrt;
+	const __m128d vv_prod_sqrt_vec = _mm_set1_pd(sqrt(vv_prod));
+    for(i = 0; i < N; i += 2)
+	{
+		const __m128d y_vec = _mm_load_pd(y + i);
+		const __m128d div_vec = _mm_div_pd(y_vec, vv_prod_sqrt_vec);
+		_mm_store_pd(v + i, div_vec);
+	}
   }
   double norm_of_v = sqrt(get_dot_prod(N, v, v));
   for(i = 0; i < N; i++)

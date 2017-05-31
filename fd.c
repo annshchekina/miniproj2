@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <float.h>
+#include <assert.h>
 #include "plotfunc.h"
 #include "linalg.h"
 #include "hamiltonian.h"
@@ -154,6 +155,7 @@ int main(int argc, char** argv)
   printf("N        = %d\n", N);
   printf("M        = %d\n", M);
   printf("nThreads = %d\n", nThreads);
+  assert(N % 2 == 0);
 
   int i;
   double t_end_min = DBL_MAX;
