@@ -1,7 +1,7 @@
 #include <math.h>
 #include "linalg.h"
 
-void do_mat_vec_mul(const int n, const double * matrix, const double * x, double* y) {
+void do_mat_vec_mul(const int n, const double * __restrict matrix, const double * __restrict x, double * __restrict y) { 
   int i, j;
   for(i = 0; i < n; i++) {
     double sum = 0;

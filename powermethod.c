@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <math.h>
 
-#define time_test 1
+#define time_test 0
 
 void do_power_method(const int N, // add restrict
-		     const double* guess,
-		     const double* matrix,
-		     double* resultEigVal,
-		     double* resultVec,
+		     const double * __restrict guess,
+		     const double * __restrict matrix,
+		     double * __restrict resultEigVal,
+		     double * __restrict resultVec,
 		     const int noOfIterations) 
 {
   if(!time_test)			 

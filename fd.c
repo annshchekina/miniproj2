@@ -11,8 +11,8 @@
 
 #define pi 3.1415926535897932384626433832795028L
 // time measurement
-#define time_test 1
-const int time_test_iter = 5; 
+#define time_test 0
+const int time_test_iter = 1; 
 
 void fd(const double mass, const double omega, const int N, const int M, const int nThreads)
 {
@@ -21,40 +21,49 @@ void fd(const double mass, const double omega, const int N, const int M, const i
 	if(!time_test)
     	printf("h = %f\n", h);
 
-    const double omega_factor = 0.5 * mass * omega * omega;
-    const double factor = -1 / (2 * mass * h * h); // what's the value?
-  
+    const double omega_factor = 0.5 * mass * omega * omega; // bitwise
+    const double factor = -1 / (2 * mass * h * h); // bitwise
+	
     /* Construct Hamiltonian matrix H */
+    /* Create H_shifted as H shifted by one_norm_of_H in order to make
+    the smallest eigenvalue the one with largest magnitude. */
     double* H = (double*)malloc(N*N*sizeof(double));
+	double* H_shifted = (double*)malloc(N*N*sizeof(double));
+	double potential_vec[N];
+	const double factor_two = 2 * factor; // bitwise
     int i, j;
     for(i = 0; i < N; i++)
-      for(j = 0; j < N; j++)
-        H[i*N+j] = get_H_matrix_element(i, j, N, h, factor, omega_factor); // keep in mind blas has different align
+    	for(j = 0; j < N; j++)
+		{
+			const int offset = i*N+j; // keep in mind blas has different align
+			double h_elem = 0;
+			if (i == j)
+			{
+				const double potential = get_potential_value(h*i, omega_factor);
+				h_elem += potential - factor_two;	
+				potential_vec[i] = potential;
+			}		    	
+			if(i == j-1 || i == j+1 || (i == N-1 && j == 0) || (i == 0 && j == N-1))
+				h_elem += factor;		
+			H[offset] = h_elem; 
+	        H_shifted[offset] = h_elem;
+		}
 
-    double one_norm_of_H = get_one_norm(N, H);
+	double one_norm_of_H = get_one_norm(N, H);
 	if(!time_test)
-    	printf("one_norm_of_H = %f\n", one_norm_of_H);
-
-    /* Create H_shifted as H shifted by one_norm_of_H in order to make
-       the smallest eigenvalue the one with largest magnitude. */
-    double* H_shifted = (double*)malloc(N*N*sizeof(double));
-    for(i = 0; i < N; i++) {
-      for(j = 0; j < N; j++) {
-        H_shifted[i*N+j] = H[i*N+j];
-        if(i == j)
-  		  H_shifted[i*N+j] -= one_norm_of_H; // make a separate
-      }
-    }
-
+	    printf("one_norm_of_H = %f\n", one_norm_of_H);
+	for(i = 0; i < N; i++)
+		H_shifted[i*N+i] -= one_norm_of_H; 
+	
     /* Set up guess vector */
-    double v_guess[N]; // make it 2 loops
+    double v_guess[N]; 
     const double N_factor = N * 0.001;
-    for(i = 0; i < N; i++) {
-      if(i <= N/2)
+	const double N_half = N / 2; // bitwise
+    for(i = 0; i < N_half + 1; i++) 
         v_guess[i] = i * 0.001;
-      else
+    for(i = N_half + 1; i < N; i++)
         v_guess[i] = N_factor - i * 0.001;
-    }
+    
     double eigValApprox = 0;
     double v_from_power_method[N];
     int noOfIterations = M;
@@ -65,83 +74,60 @@ void fd(const double mass, const double omega, const int N, const int M, const i
   		  v_from_power_method,
   		  noOfIterations);
     const double eigValApprox_shiftedBack = eigValApprox + one_norm_of_H;
-	if(!time_test)
-    	printf("eigValApprox_shiftedBack = %f\n", eigValApprox_shiftedBack);
 
     /* Get wavefunction squared */
+	/* Normalize wavefunction */
+	/* Get wavefunction_squared_sum */
+	/* Get wavefunction_squared_max */
     double wavefunction_squared[N];
+	double wavefunction_normalized_squared[N];
+	double wavefunction_squared_sum = 0;
+	double wavefunction_squared_max = 0;
+	const double h_sqrt = sqrt(h);
     for(i = 0; i < N; i++)
     {
   	  const double v_pm = v_from_power_method[i];
-  	  wavefunction_squared[i] = v_pm * v_pm; 
+	  const double wf_sqr = v_pm * v_pm; 
+  	  wavefunction_squared[i] = wf_sqr;
+	  wavefunction_squared_sum += wf_sqr; 
+	  const double wf_norm = v_pm / h_sqrt;
+	  const double wf_norm_sqr = wf_norm * wf_norm; 
+	  wavefunction_normalized_squared[i] = wf_norm_sqr; 
+      if(wf_norm_sqr > wavefunction_squared_max)
+        wavefunction_squared_max = wf_norm_sqr;
     }
 	
     /* Get analytical solution */
     double wavefunction_analytical_squared[N];
+	double maxAbsDiff = 0;
     const double pow_factor = pow(mass*omega/pi, 0.25);
-    const double mass_omega_factor = -0.5 * mass * omega;
+    const double mass_omega_factor = -0.5 * mass * omega; // bitwise
     for(i = 0; i < N; i++) {
       double x = h*i - 0.5;
-      double psi = pow_factor * exp(mass_omega_factor * x * x); ; 
-      wavefunction_analytical_squared[i] = psi*psi;
-    }
-    const double energy_analytical = 0.5 * omega;
-	if(!time_test)
-    	printf("energy_analytical = %f\n", energy_analytical);
-  
-    /* Plot potential */
-    double potential_vec[N];
-    for(i = 0; i < N; i++)
-      potential_vec[i] = get_potential_value(h*i, omega_factor);
-    if(!time_test)
-	{
-		plot_function(potential_vec, N, "potential");
-	    plot_function(wavefunction_squared, N, "wavefunction_squared");
-	    plot_function(wavefunction_analytical_squared, N, "wavefunction_analytical_squared");
-	}
-
-    /* Get wavefunction_squared_sum */
-    double wavefunction_squared_sum = 0;
-    for(i = 0; i < N; i++)
-      wavefunction_squared_sum += wavefunction_squared[i]; // fusion
-	if(!time_test)
-    	printf("wavefunction_squared_sum = %f\n", wavefunction_squared_sum);
-
-    /* Normalize wavefunction */
-    double wavefunction_normalized[N]; // remove
-    for(i = 0; i < N; i++)
-      wavefunction_normalized[i] = v_from_power_method[i] / sqrt(h); // sqrt
-    double wavefunction_normalized_squared[N];
-    for(i = 0; i < N; i++)
-	{
-		const double wf_norm = wavefunction_normalized[i];
-		wavefunction_normalized_squared[i] = wf_norm * wf_norm; 
-	}
-    // loop fusion, for i prediction
-  
-    /* Get wavefunction_squared_max */
-    double wavefunction_squared_max = 0;
-    for(i = 0; i < N; i++) {
-      if(wavefunction_normalized_squared[i] > wavefunction_squared_max)
-        wavefunction_squared_max = wavefunction_normalized_squared[i];
-    } // fusion
-	if(!time_test)
-    	printf("wavefunction_squared_max = %f\n", wavefunction_squared_max);
-    double maxAbsDiff = 0;
-    for(i = 0; i < N; i++) // fusion
-    {
-      const double absDiff = fabs(wavefunction_normalized_squared[i] - wavefunction_analytical_squared[i]);
+      double psi = pow_factor * exp(mass_omega_factor * x * x); 
+	  const double wf_anal_sqr = psi*psi;
+      wavefunction_analytical_squared[i] = wf_anal_sqr;
+      const double absDiff = fabs(wavefunction_normalized_squared[i] - wf_anal_sqr);
       if(absDiff > maxAbsDiff)
         maxAbsDiff = absDiff;
     }
-    const double maxRelDiff = maxAbsDiff / wavefunction_squared_max;
-	if(!time_test)
-    	printf("Max rel difference between finite-difference computed and analytical wavefunction_squared value: %g\n", maxRelDiff);
-
-    const double energy_diff = eigValApprox_shiftedBack - energy_analytical;
-	if(!time_test)
-    	printf("energy_diff = %13.9f\n", energy_diff);
-
+    const double energy_analytical = 0.5 * omega; // bitwise
+	const double maxRelDiff = maxAbsDiff / wavefunction_squared_max;
+	const double energy_diff = eigValApprox_shiftedBack - energy_analytical;
+		
+    if(!time_test)
+	{
+		printf("eigValApprox_shiftedBack = %f\n", eigValApprox_shiftedBack);
+		printf("energy_analytical = %f\n", energy_analytical);
+		plot_function(potential_vec, N, "potential");
+	    plot_function(wavefunction_squared, N, "wavefunction_squared");
+	    plot_function(wavefunction_analytical_squared, N, "wavefunction_analytical_squared");
+    	printf("wavefunction_squared_sum = %f\n", wavefunction_squared_sum);
+    	printf("wavefunction_squared_max = %f\n", wavefunction_squared_max);
+		printf("Max rel difference between finite-difference computed and analytical wavefunction_squared value: %g\n", maxRelDiff);
+		printf("energy_diff = %13.9f\n", energy_diff);
+	}
+	
     free(H);
     free(H_shifted);
 }
