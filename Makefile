@@ -1,4 +1,4 @@
-CFLAGS=-Wall -g -pg -std=gnu99 
+CFLAGS=-Wall -g -pg -std=gnu99 -funroll-loops -ffast-math
 INCLUDES=-I/opt/X11/include
 LDFLAGS=-L/opt/X11/lib -lX11 
 LIBS = -lm -lpthread

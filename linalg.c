@@ -2,6 +2,8 @@
 #include <pmmintrin.h>
 #include "linalg.h"
 
+#define SIMD 0
+
 void do_mat_vec_mul(const int n, const double * __restrict matrix, const double * __restrict x, double * __restrict y) { 
   int i, j;
   for(i = 0; i < n; i++) {
@@ -15,6 +17,7 @@ void do_mat_vec_mul(const int n, const double * __restrict matrix, const double 
 double get_dot_prod(const int N, const double * a, const double * b) { // simd dot product
   double sum = 0;
   int i;
+#if SIMD
   const __m128d vec_zero = _mm_setzero_pd();
   for(i = 0; i < N; i += 2)
   {
@@ -24,6 +27,10 @@ double get_dot_prod(const int N, const double * a, const double * b) { // simd d
   	const __m128d reduc = _mm_hadd_pd(mult, vec_zero);
   	sum += _mm_cvtsd_f64(reduc);
   }
+#else
+  for(i = 0; i < N; i++)		 
+    sum += a[i] * b[i];
+#endif
   return sum;
 }
 

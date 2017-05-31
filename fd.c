@@ -19,8 +19,9 @@ void fd(const double mass, const double omega, const int N, const int M, const i
 {
     const double x_max = 1.0;
     const double h = x_max / N; /* h is the spacing between grid points */
-	if(!time_test)
+#if !time_test
     	printf("h = %f\n", h);
+#endif
 
     const double omega_factor = 0.5 * mass * omega * omega; // bitwise
     const double factor = -1 / (2 * mass * h * h); // bitwise
@@ -51,8 +52,9 @@ void fd(const double mass, const double omega, const int N, const int M, const i
 		}
 
 	double one_norm_of_H = get_one_norm(N, H);
-	if(!time_test)
+#if !time_test
 	    printf("one_norm_of_H = %f\n", one_norm_of_H);
+#endif
 	for(i = 0; i < N; i++)
 		H_shifted[i*N+i] -= one_norm_of_H; 
 	
@@ -116,8 +118,7 @@ void fd(const double mass, const double omega, const int N, const int M, const i
 	const double maxRelDiff = maxAbsDiff / wavefunction_squared_max;
 	const double energy_diff = eigValApprox_shiftedBack - energy_analytical;
 		
-    if(!time_test)
-	{
+#if !time_test
 		printf("eigValApprox_shiftedBack = %f\n", eigValApprox_shiftedBack);
 		printf("energy_analytical = %f\n", energy_analytical);
 		plot_function(potential_vec, N, "potential");
@@ -127,7 +128,7 @@ void fd(const double mass, const double omega, const int N, const int M, const i
     	printf("wavefunction_squared_max = %f\n", wavefunction_squared_max);
 		printf("Max rel difference between finite-difference computed and analytical wavefunction_squared value: %g\n", maxRelDiff);
 		printf("energy_diff = %13.9f\n", energy_diff);
-	}
+#endif
 	
     free(H);
     free(H_shifted);
